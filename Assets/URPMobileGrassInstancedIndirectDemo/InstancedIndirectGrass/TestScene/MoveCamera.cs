@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class MoveCamera : MonoBehaviour
 {
-    public Camera camera;
+    public Camera _camera;
     public List<Transform> allCameraTransforms = new List<Transform>();
 
     int index = 0;
@@ -20,7 +20,7 @@ public class MoveCamera : MonoBehaviour
     {
         Transform target = allCameraTransforms[index];
 
-        camera.transform.position = Vector3.Lerp(camera.transform.position,target.position, Time.deltaTime * 2);
-        camera.transform.rotation = Quaternion.Slerp(camera.transform.rotation,target.rotation, Time.deltaTime * 2);
+        _camera.transform.position = Vector3.Lerp(_camera.transform.position,target.position, Time.deltaTime * 2);
+        _camera.transform.rotation = Quaternion.Slerp(_camera.transform.rotation,target.rotation, Time.deltaTime * 2);
     }
 }
