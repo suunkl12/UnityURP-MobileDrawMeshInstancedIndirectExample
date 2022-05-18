@@ -1,107 +1,63 @@
-Shader "Example/URPUnlitShaderBasic"
-{
-    Properties
-    {  
-        _Tess ("Tessellation", Range(1,32)) = 4
-        _MainTex ("Base (RGB)", 2D) = "white" {}
-        _DispTex ("Disp Texture", 2D) = "gray" {}
-        _NormalMap ("Normalmap", 2D) = "bump" {}
-        _Displacement ("Displacement", Range(0, 1.0)) = 0.3
-        _Color ("Color", color) = (1,1,1,0)
-        _SpecColor ("Spec color", color) = (0.5,0.5,0.5,0.5)
+// MIT License
+
+// Copyright (c) 2021 NedMakesGames
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files(the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions :
+
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+// This is a shader that demonstrates tessellation factors and partitioning modes
+
+Shader "SnowShader/TessellationFactors" {
+    Properties{
+        _FactorEdge1("Edge factors", Vector) = (1, 1, 1, 0)
+        _FactorEdge2("Edge 2 factor", Float) = 1
+        _FactorEdge3("Edge 3 factor", Float) = 1
+        _FactorInside("Inside factor", Float) = 1
+        // This keyword enum allows us to choose between partitioning modes. It's best to try them out for yourself
+        [KeywordEnum(INTEGER, FRAC_EVEN, FRAC_ODD, POW2)] _PARTITIONING("Partition algoritm", Float) = 0
     }
+    SubShader{
+        Tags{"RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" "IgnoreProjector" = "True"}
 
-    SubShader
-    {
-        Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" }
+        Pass {
+            Name "ForwardLit"
+            Tags{"LightMode" = "UniversalForward"}
 
-        Pass
-        {
             HLSLPROGRAM
+            #pragma target 5.0 // 5.0 required for tessellation
 
-            #pragma vertex vert
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS_CASCADE
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS
+            #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT
+            #pragma multi_compile_fog
+            #pragma multi_compile_instancing
+
+            // Material keywords
+            #pragma shader_feature_local _PARTITIONING_INTEGER _PARTITIONING_FRAC_EVEN _PARTITIONING_FRAC_ODD _PARTITIONING_POW2
+
+            #pragma vertex Vertex
             #pragma hull Hull
-            #pragma fragment frag
-            #pragma target 5.0
+            #pragma domain Domain
+            #pragma fragment Fragment
 
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-            
-            struct Attributes 
-            {
-                float3 positionOS : POSITION;
-                float3 normalOS : NORMAL;
-                UNITY_VERTEX_INPUT_INSTANCE_ID
-            };
-
-            struct TessellationControlPoint 
-            {
-                float3 positionWS : INTERNALTESSPOS;
-                float3 normalWS : NORMAL;
-                UNITY_VERTEX_INPUT_INSTANCE_ID
-            };
-
-            TessellationControlPoint Vertex(Attributes input) 
-            {
-                TessellationControlPoint output;
-
-                UNITY_SETUP_INSTANCE_ID(input);
-                UNITY_TRANSFER_INSTANCE_ID(input, output);
-
-                VertexPositionInputs posnInputs = GetVertexPositionInputs(input.positionOS);
-                VertexNormalInputs normalInputs = GetVertexNormalInputs(input.normalOS);
-
-                output.positionWS = posnInputs.positionWS;
-                output.normalWS = normalInputs.normalWS;
-                return output;
-            }
-
-            [domain("tri")] 
-            [outputcontrolpoints(3)]
-            [outputtopology("triangle_cw")]
-            [patchconstantfunc("PatchConstantFunction")] 
-            [partitioning("integer")]
-            TessellationControlPoint Hull(InputPatch<TessellationControlPoint, 3> patch, uint id : SV_OutputControlPointID) 
-            { 
-                return patch[id];
-            }
-
-            struct TessellationFactors {
-                float edge[3] : SV_TessFactor;
-                float inside : SV_InsideTessFactor;
-            };
-
-            TessellationFactors PatchConstantFunction(InputPatch<TessellationControlPoint, 3> patch)
-            {
-                UNITY_SETUP_INSTANCE_ID(patch[0]);
-
-                TessellationFactors f;
-                f.edge[0] = 1;
-                f.edge[1] = 1;
-                f.edge[2] = 1;
-                f.inside = 1;
-                return f;
-            }
-
-            struct Varyings
-            {
-                float4 positionHCS  : SV_POSITION;
-            };
-
-            Varyings vert(Attributes IN)
-            {
-                Varyings OUT;
-                
-                OUT.positionHCS = TransformObjectToHClip(IN.positionOS.xyz);
-
-                
-                return OUT;
-            }
-
-            half4 frag() : SV_Target
-            {
-                half4 customColor = half4(0.5, 0, 0, 1);
-                return customColor;
-            }
+            #include "TessellationFactors.hlsl"
             ENDHLSL
         }
     }
